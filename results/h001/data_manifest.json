@@ -1,7 +1,7 @@
 {
   "experiment": "H001",
   "manifest_schema_version": 1,
-  "manifest_generated_at_utc": "2026-10-05T12:37:54.481181+00:00",
+  "manifest_generated_at_utc": "2026-10-05T12:53:57.980945+00:00",
   "requested_data_range": {
     "start": "2007-01-01",
     "end": "2026-09-30"
@@ -178,8 +178,8 @@
     }
   },
   "git": {
-    "head_at_generation": "1b3891c5af7ebaf563a818508cb5c3236f9f6767",
+    "head_at_generation": "9ee905c69cffdbed66c871cc77251581592877e8",
     "branch_at_generation": "fix/h001-review",
-    "working_tree_dirty_at_generation": true
+    "working_tree_dirty_at_generation": false
   }
 }
