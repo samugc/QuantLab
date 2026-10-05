@@ -54,20 +54,12 @@ def test_h001_end_to_end_small_case():
         index=dates,
     )
 
-    # ---------------------------------------------------------
-    # 1. Returns
-    # ---------------------------------------------------------
-
     asset_returns = pd.DataFrame(
         {
             ticker: simple_returns(prices[ticker])
             for ticker in prices.columns
         }
     )
-
-    # ---------------------------------------------------------
-    # 2. Momentum
-    # ---------------------------------------------------------
 
     lookback = 2
 
@@ -80,10 +72,6 @@ def test_h001_end_to_end_small_case():
             for ticker in prices.columns
         }
     )
-
-    # ---------------------------------------------------------
-    # 3. Cash
-    # ---------------------------------------------------------
 
     cash_daily_return = pd.Series(
         0.0,
@@ -141,10 +129,6 @@ def test_h001_end_to_end_small_case():
         ]
     )
 
-    # ---------------------------------------------------------
-    # 4. Inverse-volatility base allocation
-    # ---------------------------------------------------------
-
     volatility = pd.Series({
         "A": 0.10,
         "B": 0.10,
@@ -161,10 +145,6 @@ def test_h001_end_to_end_small_case():
     assert base_weights["B"] == pytest.approx(
         0.50
     )
-
-    # ---------------------------------------------------------
-    # 5. Apply H001 momentum gate
-    # ---------------------------------------------------------
 
     first_target = base_weights.where(
         signal_on.loc[first_decision_date],
@@ -219,10 +199,6 @@ def test_h001_end_to_end_small_case():
         second_decision_date
     ] == pytest.approx(0.50)
 
-    # ---------------------------------------------------------
-    # 6. Simulate with next-close execution
-    # ---------------------------------------------------------
-
     result = simulate_rebalanced_portfolio(
         asset_returns=asset_returns,
         target_weights=target_weights,
@@ -230,28 +206,43 @@ def test_h001_end_to_end_small_case():
         target_cash_weights=target_cash_weights,
     )
 
-    # Decision on Jan 5 is executed at Jan 6 close.
-    # Therefore its first realized return is Jan 7.
+    # Jan 5 decision executes at the Jan 6 close.
+    # The portfolio is still in cash during the return
+    # ending on Jan 6.
     assert result.index[0] == pd.Timestamp(
-        "2026-01-07"
+        "2026-01-06"
     )
 
-    # 50% A * -10% + 50% cash * 0% = -5%
+    assert result.loc[
+        pd.Timestamp("2026-01-06"),
+        "portfolio_return",
+    ] == pytest.approx(0.0)
+
+    assert result.loc[
+        pd.Timestamp("2026-01-06"),
+        "gross_traded_notional",
+    ] == pytest.approx(0.50)
+
+    # The Jan 6 close target first affects the
+    # Jan 6 -> Jan 7 return.
+    #
+    # 50% A * -10% + 50% cash * 0% = -5%.
     assert result.loc[
         pd.Timestamp("2026-01-07"),
         "portfolio_return",
     ] == pytest.approx(-0.05)
 
-    # No movement on Jan 8.
+    # The Jan 7 decision executes at the Jan 8 close.
+    # There is no market movement during the return
+    # ending on Jan 8.
     assert result.loc[
         pd.Timestamp("2026-01-08"),
         "portfolio_return",
     ] == pytest.approx(0.0)
 
-    # Second target was calculated Jan 7,
-    # executed Jan 8 close, and first applies Jan 9.
+    # The second target first affects Jan 8 -> Jan 9.
     #
-    # 50% B * +10% + 50% cash = +5%
+    # 50% B * +10% + 50% cash * 0% = +5%.
     assert result.loc[
         pd.Timestamp("2026-01-09"),
         "portfolio_return",
@@ -259,20 +250,16 @@ def test_h001_end_to_end_small_case():
 
     # Manual wealth:
     #
-    # 1.00 * 0.95 * 1.00 * 1.05 = 0.9975
+    # 1.00 * 1.00 * 0.95 * 1.00 * 1.05 = 0.9975
     assert result.iloc[-1]["wealth"] == pytest.approx(
         0.9975
     )
-
-    # ---------------------------------------------------------
-    # 7. Evaluation
-    # ---------------------------------------------------------
 
     wealth_for_metrics = pd.concat([
         pd.Series(
             [1.0],
             index=[
-                pd.Timestamp("2026-01-06"),
+                pd.Timestamp("2026-01-05"),
             ],
         ),
         result["wealth"],

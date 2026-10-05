@@ -109,17 +109,33 @@ def test_next_close_execution_and_weight_drift():
         target_weights=target_weights,
     )
 
-    assert pd.Timestamp(
+    # Decision on Jan 30 executes at the Feb 2 close.
+    # The portfolio is still 100% cash during the return
+    # ending on Feb 2.
+    assert result.index[0] == pd.Timestamp(
         "2026-02-02"
-    ) not in result.index
+    )
 
+    assert result.loc[
+        pd.Timestamp("2026-02-02"),
+        "portfolio_return",
+    ] == pytest.approx(0.0)
+
+    assert result.loc[
+        pd.Timestamp("2026-02-02"),
+        "gross_traded_notional",
+    ] == pytest.approx(1.0)
+
+    # The new 50/50 target first earns the return
+    # from Feb 2 close to Feb 3 close.
     assert result.loc[
         pd.Timestamp("2026-02-03"),
         "portfolio_return",
     ] == pytest.approx(0.05)
 
     expected_second_return = (
-        (0.50 / 1.05) * 0.10
+        (0.50 / 1.05) * 0.00
+        + (0.50 / 1.05) * 0.10
     )
 
     assert result.loc[
@@ -242,39 +258,34 @@ def test_turnover_uses_drifted_pretrade_weights():
         target_weights=target_weights,
     )
 
-    # Initial deployment from 100% cash:
-    #
-    # buy 50% A + buy 50% B = 100% gross notional
+    # Initial deployment occurs at the Feb 2 close.
     assert result.loc[
-        pd.Timestamp("2026-02-03"),
+        pd.Timestamp("2026-02-02"),
         "gross_traded_notional",
     ] == pytest.approx(1.0)
 
-    # After A rises 10%:
+    # After A rises 10% on Feb 3:
     #
-    # A = 0.55 / 1.05 = 52.38095%
-    # B = 0.50 / 1.05 = 47.61905%
+    # A = 0.55 / 1.05
+    # B = 0.50 / 1.05
     #
-    # Rebalancing to 50/50 requires:
-    #
-    # sell A 2.38095%
-    # buy B  2.38095%
-    #
-    # gross traded notional = 4.76190%
+    # The Feb 27 target executes at the Mar 2 close.
+    # Returns on Feb 27 and Mar 2 are both zero, so the
+    # drifted weights remain unchanged before that trade.
     expected_turnover = (
         abs(0.50 - (0.55 / 1.05))
         + abs(0.50 - (0.50 / 1.05))
     )
 
     assert result.loc[
-        pd.Timestamp("2026-03-03"),
+        pd.Timestamp("2026-03-02"),
         "gross_traded_notional",
     ] == pytest.approx(
         expected_turnover
     )
 
 
-def test_transaction_costs_reduce_net_return_and_wealth():
+def test_transaction_costs_are_charged_on_execution_date():
     dates = pd.to_datetime([
         "2026-01-30",
         "2026-02-02",
@@ -329,49 +340,48 @@ def test_transaction_costs_reduce_net_return_and_wealth():
         transaction_cost_bps=10.0,
     )
 
-    # Initial deployment:
-    #
-    # 0 -> 60% A
-    # 0 -> 40% B
-    #
-    # gross traded notional = 100%
+    # Jan 30 decision executes at Feb 2 close.
     assert result.loc[
-        pd.Timestamp("2026-02-03"),
+        pd.Timestamp("2026-02-02"),
         "gross_traded_notional",
     ] == pytest.approx(1.0)
 
-    # 10 bps = 0.001
     assert result.loc[
-        pd.Timestamp("2026-02-03"),
+        pd.Timestamp("2026-02-02"),
         "transaction_cost",
     ] == pytest.approx(0.001)
 
-    # Market return is zero, so net return is exactly -cost.
     assert result.loc[
-        pd.Timestamp("2026-02-03"),
+        pd.Timestamp("2026-02-02"),
         "gross_portfolio_return",
     ] == pytest.approx(0.0)
 
     assert result.loc[
-        pd.Timestamp("2026-02-03"),
+        pd.Timestamp("2026-02-02"),
         "portfolio_return",
     ] == pytest.approx(-0.001)
 
-    # Second rebalance:
-    #
-    # 60/40 -> 50/50
-    #
-    # sell 10% A + buy 10% B = 20%
+    # The cost must not be shifted to the following session.
     assert result.loc[
-        pd.Timestamp("2026-03-03"),
+        pd.Timestamp("2026-02-03"),
+        "transaction_cost",
+    ] == pytest.approx(0.0)
+
+    # Feb 27 decision executes at Mar 2 close.
+    assert result.loc[
+        pd.Timestamp("2026-03-02"),
         "gross_traded_notional",
     ] == pytest.approx(0.20)
 
-    # 20% * 10 bps = 0.0002
+    assert result.loc[
+        pd.Timestamp("2026-03-02"),
+        "transaction_cost",
+    ] == pytest.approx(0.0002)
+
     assert result.loc[
         pd.Timestamp("2026-03-03"),
         "transaction_cost",
-    ] == pytest.approx(0.0002)
+    ] == pytest.approx(0.0)
 
     expected_final_wealth = (
         (1.0 - 0.001)
@@ -381,3 +391,67 @@ def test_transaction_costs_reduce_net_return_and_wealth():
     assert result.iloc[-1]["wealth"] == pytest.approx(
         expected_final_wealth
     )
+
+
+def test_penultimate_decision_executes_on_final_close():
+    dates = pd.to_datetime([
+        "2026-01-30",
+        "2026-02-02",
+        "2026-02-03",
+    ])
+
+    asset_returns = pd.DataFrame(
+        {
+            "A": [0.0, 0.0, 0.0],
+            "B": [0.0, 0.0, 0.0],
+        },
+        index=dates,
+    )
+
+    # The target is formed on the penultimate observation.
+    target_weights = pd.DataFrame(
+        {
+            "A": [0.60],
+            "B": [0.40],
+        },
+        index=pd.to_datetime([
+            "2026-02-02",
+        ]),
+    )
+
+    result = simulate_rebalanced_portfolio(
+        asset_returns=asset_returns,
+        target_weights=target_weights,
+        transaction_cost_bps=10.0,
+    )
+
+    final_date = pd.Timestamp("2026-02-03")
+
+    # Even though there is no later return observation,
+    # the trade must still occur at the final close.
+    assert final_date in result.index
+
+    assert result.loc[
+        final_date,
+        "gross_traded_notional",
+    ] == pytest.approx(1.0)
+
+    assert result.loc[
+        final_date,
+        "transaction_cost",
+    ] == pytest.approx(0.001)
+
+    assert result.loc[
+        final_date,
+        "portfolio_return",
+    ] == pytest.approx(-0.001)
+
+    assert result.loc[
+        final_date,
+        "wealth",
+    ] == pytest.approx(0.999)
+
+    assert result.loc[
+        final_date,
+        "cash_weight",
+    ] == pytest.approx(0.0)

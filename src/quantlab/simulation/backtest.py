@@ -87,7 +87,10 @@ def simulate_rebalanced_portfolio(
     A target computed using the close of date t is executed at the close
     of the next available trading session t+1.
 
-    Therefore, the new target first affects the return from t+1 to t+2.
+    Holdings already in the portfolio earn the return ending on t+1.
+    The rebalance and its transaction cost are then applied at the t+1
+    close. The new target therefore first affects the return from t+1
+    to t+2.
 
     Transaction costs are charged on gross traded ETF notional.
     Cash is treated as the residual funding asset and is not counted
@@ -230,80 +233,24 @@ def simulate_rebalanced_portfolio(
     )
 
     current_cash_weight = 1.0
-
     current_wealth = 1.0
     active = False
 
     records = []
-
     dates = asset_returns.index
 
     for position, date in enumerate(dates):
-        gross_traded_notional = 0.0
-        transaction_cost = 0.0
+        decision_date = None
 
-        # A decision made at close(t) is executed at close(t+1).
-        #
-        # When we process the return labelled t+2, the portfolio
-        # therefore already holds the target calculated at t.
-        if position >= 2:
-            decision_date = dates[position - 2]
+        if position >= 1:
+            decision_date = dates[position - 1]
 
-            if decision_date in target_weights.index:
-                new_asset_weights = (
-                    target_weights
-                    .loc[decision_date]
-                    .astype(float)
-                    .copy()
-                )
+        rebalance_today = (
+            decision_date is not None
+            and decision_date in target_weights.index
+        )
 
-                new_cash_weight = float(
-                    target_cash_weights.loc[
-                        decision_date
-                    ]
-                )
-
-                # Compare the new target with the ACTUAL portfolio
-                # weights immediately before trading.
-                #
-                # These weights may have drifted substantially since
-                # the previous rebalance.
-                gross_traded_notional = float(
-                    (
-                        new_asset_weights
-                        - current_asset_weights
-                    )
-                    .abs()
-                    .sum()
-                )
-
-                transaction_cost = (
-                    gross_traded_notional
-                    * transaction_cost_rate
-                )
-
-                if transaction_cost >= 1.0:
-                    raise ValueError(
-                        "Transaction cost would consume the entire portfolio."
-                    )
-
-                # Costs are paid from current NAV before the new target
-                # begins earning returns.
-                current_wealth *= (
-                    1.0 - transaction_cost
-                )
-
-                current_asset_weights = (
-                    new_asset_weights
-                )
-
-                current_cash_weight = (
-                    new_cash_weight
-                )
-
-                active = True
-
-        if not active:
+        if not active and not rebalance_today:
             continue
 
         returns_today = asset_returns.loc[date]
@@ -331,23 +278,12 @@ def simulate_rebalanced_portfolio(
             cash_return=cash_return_today,
         )
 
-        # Cost is paid before the period return.
-        #
-        # W_t =
-        # W_{t-1} * (1 - cost) * (1 + gross_return)
-        #
-        # Therefore the equivalent net return is:
-        net_portfolio_return = (
-            (1.0 - transaction_cost)
-            * (1.0 + gross_portfolio_return)
-            - 1.0
-        )
-
         current_wealth *= (
             1.0 + gross_portfolio_return
         )
 
-        # Let weights drift naturally after market returns.
+        # Holdings drift through the session before any trade
+        # executed at today's close.
         asset_values = (
             current_asset_weights
             * (1.0 + returns_today)
@@ -369,6 +305,64 @@ def simulate_rebalanced_portfolio(
 
         current_cash_weight = (
             cash_value / total_value
+        )
+
+        gross_traded_notional = 0.0
+        transaction_cost = 0.0
+
+        if rebalance_today:
+            new_asset_weights = (
+                target_weights
+                .loc[decision_date]
+                .astype(float)
+                .copy()
+            )
+
+            new_cash_weight = float(
+                target_cash_weights.loc[
+                    decision_date
+                ]
+            )
+
+            # Turnover is measured against the portfolio weights
+            # immediately before trading at today's close.
+            gross_traded_notional = float(
+                (
+                    new_asset_weights
+                    - current_asset_weights
+                )
+                .abs()
+                .sum()
+            )
+
+            transaction_cost = (
+                gross_traded_notional
+                * transaction_cost_rate
+            )
+
+            if transaction_cost >= 1.0:
+                raise ValueError(
+                    "Transaction cost would consume the entire portfolio."
+                )
+
+            current_wealth *= (
+                1.0 - transaction_cost
+            )
+
+            current_asset_weights = (
+                new_asset_weights
+            )
+
+            current_cash_weight = (
+                new_cash_weight
+            )
+
+            active = True
+
+        net_portfolio_return = (
+            (1.0 + gross_portfolio_return)
+            * (1.0 - transaction_cost)
+            - 1.0
         )
 
         records.append({

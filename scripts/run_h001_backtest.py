@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from quantlab.evaluation.metrics import (
@@ -45,6 +46,9 @@ TICKERS = [
 TIINGO_DIR = Path("data/raw/tiingo")
 FRED_PATH = Path("data/raw/fred/DGS3MO.csv")
 
+DATA_START_DATE = pd.Timestamp("2007-01-01")
+DATA_END_DATE = pd.Timestamp("2026-09-30")
+
 VOLATILITY_WINDOW = 60
 MOMENTUM_LOOKBACK = 252
 
@@ -82,9 +86,12 @@ SUBPERIODS = [
 
 
 def load_market_data() -> pd.DataFrame:
-    """Load and align local ETF and risk-free snapshots."""
+    """Load and validate local ETF and risk-free snapshots."""
 
     price_series = {}
+
+    reference_calendar = None
+    reference_ticker = None
 
     for ticker in TICKERS:
         path = TIINGO_DIR / f"{ticker}.csv"
@@ -112,19 +119,108 @@ def load_market_data() -> pd.DataFrame:
                 f"{sorted(missing_columns)}"
             )
 
-        df["date"] = pd.to_datetime(
+        dates = pd.to_datetime(
             df["date"],
             utc=True,
+            errors="raise",
         ).dt.tz_localize(None)
 
-        price_series[ticker] = (
-            df.set_index("date")["adjClose"]
-            .sort_index()
+        if dates.duplicated().any():
+            raise ValueError(
+                f"{ticker} snapshot contains duplicate dates."
+            )
+
+        adjusted_close = pd.to_numeric(
+            df["adjClose"],
+            errors="coerce",
         )
+
+        if adjusted_close.isna().any():
+            raise ValueError(
+                f"{ticker} snapshot contains missing "
+                "or non-numeric adjusted closes."
+            )
+
+        if not np.isfinite(
+            adjusted_close.to_numpy()
+        ).all():
+            raise ValueError(
+                f"{ticker} snapshot contains non-finite "
+                "adjusted closes."
+            )
+
+        if (
+            adjusted_close <= 0.0
+        ).any():
+            raise ValueError(
+                f"{ticker} snapshot contains non-positive "
+                "adjusted closes."
+            )
+
+        series = pd.Series(
+            adjusted_close.to_numpy(
+                dtype=float
+            ),
+            index=dates,
+            name=ticker,
+        ).sort_index()
+
+        if reference_calendar is None:
+            reference_calendar = series.index
+            reference_ticker = ticker
+
+        elif not series.index.equals(
+            reference_calendar
+        ):
+            missing_dates = (
+                reference_calendar.difference(
+                    series.index
+                )
+            )
+
+            extra_dates = (
+                series.index.difference(
+                    reference_calendar
+                )
+            )
+
+            raise ValueError(
+                f"{ticker} trading calendar differs from "
+                f"{reference_ticker}. "
+                f"Missing dates: "
+                f"{list(missing_dates[:5])}; "
+                f"extra dates: "
+                f"{list(extra_dates[:5])}."
+            )
+
+        price_series[ticker] = series
 
     prices = pd.DataFrame(
         price_series
-    ).dropna()
+    )
+
+    if prices.empty:
+        raise ValueError(
+            "ETF price panel is empty."
+        )
+
+    if prices.isna().any().any():
+        raise ValueError(
+            "Missing ETF prices after calendar validation."
+        )
+
+    if prices.index.min() < DATA_START_DATE:
+        raise ValueError(
+            "ETF snapshots contain observations before "
+            f"{DATA_START_DATE.date()}."
+        )
+
+    if prices.index.max() != DATA_END_DATE:
+        raise ValueError(
+            "ETF snapshots must end on "
+            f"{DATA_END_DATE.date()}, but end on "
+            f"{prices.index.max().date()}."
+        )
 
     if not FRED_PATH.exists():
         raise FileNotFoundError(
@@ -151,14 +247,25 @@ def load_market_data() -> pd.DataFrame:
             f"{sorted(missing_columns)}"
         )
 
+    risk_free["date"] = pd.to_datetime(
+        risk_free["date"],
+        errors="raise",
+    )
+
+    if risk_free["date"].duplicated().any():
+        raise ValueError(
+            "FRED snapshot contains duplicate dates."
+        )
+
+    risk_free["value"] = pd.to_numeric(
+        risk_free["value"],
+        errors="coerce",
+    )
+
     risk_free = risk_free.rename(
         columns={
             "value": "annual_yield_percent",
         }
-    )
-
-    risk_free["date"] = pd.to_datetime(
-        risk_free["date"]
     )
 
     risk_free = (
@@ -190,6 +297,15 @@ def load_market_data() -> pd.DataFrame:
     ].isna().any():
         raise ValueError(
             "Missing risk-free yields after alignment."
+        )
+
+    if not np.isfinite(
+        market_data[
+            "annual_yield_percent"
+        ].to_numpy()
+    ).all():
+        raise ValueError(
+            "Risk-free yields contain non-finite values."
         )
 
     return market_data

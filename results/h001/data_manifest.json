@@ -1,0 +1,185 @@
+{
+  "experiment": "H001",
+  "manifest_schema_version": 1,
+  "manifest_generated_at_utc": "2026-10-05T12:37:54.481181+00:00",
+  "requested_data_range": {
+    "start": "2007-01-01",
+    "end": "2026-09-30"
+  },
+  "data_conventions": {
+    "etf_price_field": "adjClose",
+    "etf_calendar_alignment": "All ETF snapshots must share exactly the same observed-session calendar.",
+    "risk_free_series": "DGS3MO",
+    "risk_free_alignment": "FRED is left-joined to the ETF calendar and forward-filled.",
+    "risk_free_return_model": "Previous observed annual percentage yield divided by 100 and 252."
+  },
+  "retrieval_metadata": {
+    "status": "not_recorded_for_legacy_snapshots",
+    "recorded_snapshots": 0,
+    "total_snapshots": 9,
+    "metadata_source": "data/raw/h001_retrieval_metadata.json",
+    "note": "Provider retrieval timestamps are reported only when they were explicitly recorded at download time. Filesystem modification times are reported separately and are not treated as provider retrieval timestamps."
+  },
+  "etf_snapshots": [
+    {
+      "provider": "Tiingo",
+      "symbol": "SPY",
+      "path": "data/raw/tiingo/SPY.csv",
+      "sha256": "ffcfd78ce096580a79b976ee76f48ca19f0fc931eec8b740fd6caf55cbc08dc0",
+      "rows": 4967,
+      "actual_start": "2007-01-03",
+      "actual_end": "2026-09-30",
+      "date_column": "date",
+      "price_column": "adjClose",
+      "local_file_modified_at_utc": "2026-10-05T00:01:12.424494+00:00",
+      "retrieval": {
+        "status": "not_recorded_for_legacy_snapshot",
+        "retrieved_at_utc": null
+      }
+    },
+    {
+      "provider": "Tiingo",
+      "symbol": "IWM",
+      "path": "data/raw/tiingo/IWM.csv",
+      "sha256": "a226cb45fe005e0ff85f7a17897c9e08165b6deb866d0787d07f63e696011137",
+      "rows": 4967,
+      "actual_start": "2007-01-03",
+      "actual_end": "2026-09-30",
+      "date_column": "date",
+      "price_column": "adjClose",
+      "local_file_modified_at_utc": "2026-10-05T00:01:13.474299+00:00",
+      "retrieval": {
+        "status": "not_recorded_for_legacy_snapshot",
+        "retrieved_at_utc": null
+      }
+    },
+    {
+      "provider": "Tiingo",
+      "symbol": "EFA",
+      "path": "data/raw/tiingo/EFA.csv",
+      "sha256": "0d4eb87ff170d850a316b00205e3f7b6ee6437ce2f8328782026d397044fb73e",
+      "rows": 4967,
+      "actual_start": "2007-01-03",
+      "actual_end": "2026-09-30",
+      "date_column": "date",
+      "price_column": "adjClose",
+      "local_file_modified_at_utc": "2026-10-05T00:01:14.549520+00:00",
+      "retrieval": {
+        "status": "not_recorded_for_legacy_snapshot",
+        "retrieved_at_utc": null
+      }
+    },
+    {
+      "provider": "Tiingo",
+      "symbol": "EEM",
+      "path": "data/raw/tiingo/EEM.csv",
+      "sha256": "45d22b1feda1afcc8eb62021f236e8c0047fb13452c0e0922a8cb9f6a14134fd",
+      "rows": 4967,
+      "actual_start": "2007-01-03",
+      "actual_end": "2026-09-30",
+      "date_column": "date",
+      "price_column": "adjClose",
+      "local_file_modified_at_utc": "2026-10-05T00:01:15.591702+00:00",
+      "retrieval": {
+        "status": "not_recorded_for_legacy_snapshot",
+        "retrieved_at_utc": null
+      }
+    },
+    {
+      "provider": "Tiingo",
+      "symbol": "IEF",
+      "path": "data/raw/tiingo/IEF.csv",
+      "sha256": "e259ef6eb995c91eacd8ce59fb1c4880eac3e5365aedf2d0aaba24c9a2d363e6",
+      "rows": 4967,
+      "actual_start": "2007-01-03",
+      "actual_end": "2026-09-30",
+      "date_column": "date",
+      "price_column": "adjClose",
+      "local_file_modified_at_utc": "2026-10-05T00:01:16.675451+00:00",
+      "retrieval": {
+        "status": "not_recorded_for_legacy_snapshot",
+        "retrieved_at_utc": null
+      }
+    },
+    {
+      "provider": "Tiingo",
+      "symbol": "LQD",
+      "path": "data/raw/tiingo/LQD.csv",
+      "sha256": "2d1c0694ef77059f899f128eced3a5c3e7bce5e1209f53f7ff6de3370dd71f8d",
+      "rows": 4967,
+      "actual_start": "2007-01-03",
+      "actual_end": "2026-09-30",
+      "date_column": "date",
+      "price_column": "adjClose",
+      "local_file_modified_at_utc": "2026-10-05T00:01:17.725216+00:00",
+      "retrieval": {
+        "status": "not_recorded_for_legacy_snapshot",
+        "retrieved_at_utc": null
+      }
+    },
+    {
+      "provider": "Tiingo",
+      "symbol": "GLD",
+      "path": "data/raw/tiingo/GLD.csv",
+      "sha256": "a433625fd623480f7ffed4727932b8cd0c255fc4177b770bb331c51e7a48fe1d",
+      "rows": 4967,
+      "actual_start": "2007-01-03",
+      "actual_end": "2026-09-30",
+      "date_column": "date",
+      "price_column": "adjClose",
+      "local_file_modified_at_utc": "2026-10-05T00:01:18.774765+00:00",
+      "retrieval": {
+        "status": "not_recorded_for_legacy_snapshot",
+        "retrieved_at_utc": null
+      }
+    },
+    {
+      "provider": "Tiingo",
+      "symbol": "DBC",
+      "path": "data/raw/tiingo/DBC.csv",
+      "sha256": "e9867860f34e6d8cb681373e6be6523cb9b8f7e16eddaf21c25d7eb6a1ec0be1",
+      "rows": 4967,
+      "actual_start": "2007-01-03",
+      "actual_end": "2026-09-30",
+      "date_column": "date",
+      "price_column": "adjClose",
+      "local_file_modified_at_utc": "2026-10-05T00:01:19.822690+00:00",
+      "retrieval": {
+        "status": "not_recorded_for_legacy_snapshot",
+        "retrieved_at_utc": null
+      }
+    }
+  ],
+  "risk_free_snapshot": {
+    "provider": "Federal Reserve Economic Data (FRED)",
+    "series": "DGS3MO",
+    "path": "data/raw/fred/DGS3MO.csv",
+    "sha256": "262f6d38ba99fb74281fb5090d2f3ae7d9a1fad46443485eebeae72c73d69208",
+    "rows": 5152,
+    "actual_start": "2007-01-02",
+    "actual_end": "2026-09-30",
+    "date_column": "date",
+    "value_column": "value",
+    "local_file_modified_at_utc": "2026-10-05T00:01:20.459157+00:00",
+    "retrieval": {
+      "status": "not_recorded_for_legacy_snapshot",
+      "retrieved_at_utc": null
+    }
+  },
+  "environment": {
+    "python": "3.13.5",
+    "packages": {
+      "numpy": "2.5.3",
+      "pandas": "3.0.6",
+      "requests": "2.34.2",
+      "python-dotenv": "1.2.4",
+      "matplotlib": "3.11.2",
+      "pytest": "9.1.1"
+    }
+  },
+  "git": {
+    "head_at_generation": "1b3891c5af7ebaf563a818508cb5c3236f9f6767",
+    "branch_at_generation": "fix/h001-review",
+    "working_tree_dirty_at_generation": true
+  }
+}

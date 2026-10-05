@@ -9,6 +9,7 @@ from quantlab.portfolio.exposure import exposure_matched_weights
 from run_h001_backtest import (
     SUBPERIOD_COST_BPS,
     TRANSACTION_COST_SCENARIOS_BPS,
+    add_initial_wealth,
     build_monthly_targets,
     build_research_inputs,
     evaluate_subperiods,
@@ -83,7 +84,6 @@ def main() -> None:
     # Transaction-cost sensitivity
 
     cost_records = []
-
     primary_simulations = {}
 
     for cost_bps in TRANSACTION_COST_SCENARIOS_BPS:
@@ -183,13 +183,16 @@ def main() -> None:
         / "target_risky_exposure.csv"
     )
 
-    # Wealth series
+    # Wealth series, including the initial capital observation.
 
     wealth = pd.DataFrame({
         strategy_name:
-            simulation[
-                "wealth"
-            ]
+            add_initial_wealth(
+                wealth=simulation[
+                    "wealth"
+                ],
+                market_index=market_data.index,
+            )
         for (
             strategy_name,
             simulation,
@@ -203,19 +206,17 @@ def main() -> None:
         / "wealth_10bps.csv"
     )
 
-    # Drawdown series
+    # Drawdowns use the same wealth series as the reported metrics.
 
     drawdowns = pd.DataFrame({
         strategy_name:
             drawdown_series(
-                simulation[
-                    "wealth"
+                wealth[
+                    strategy_name
                 ]
             )
-        for (
-            strategy_name,
-            simulation,
-        ) in primary_simulations.items()
+        for strategy_name
+        in wealth.columns
     })
 
     drawdowns.index.name = "date"

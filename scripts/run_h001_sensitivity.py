@@ -514,10 +514,33 @@ def main() -> None:
         in strategy_simulations.values()
     ]
 
-    common_start = max(
+    latest_initial_execution = max(
         simulation.index.min()
         for simulation
         in all_simulations
+    )
+
+    latest_initial_position = (
+        market_data.index.get_loc(
+            latest_initial_execution
+        )
+    )
+
+    if (
+        latest_initial_position
+        >= len(market_data.index) - 1
+    ):
+        raise RuntimeError(
+            "No session remains after all initial deployments."
+        )
+
+    # Start evaluation only after every strategy has completed
+    # its initial deployment. Initial deployment costs are
+    # therefore outside the common comparison period.
+    common_start = (
+        market_data.index[
+            latest_initial_position + 1
+        ]
     )
 
     common_end = min(
@@ -633,6 +656,14 @@ def main() -> None:
             )
         )
 
+        if (
+            h001_metrics["observations"]
+            != matched_metrics["observations"]
+        ):
+            raise RuntimeError(
+                "H001 and ExposureMatched observation counts differ."
+            )
+
         is_original = (
             volatility_window
             == ORIGINAL_VOLATILITY_WINDOW
@@ -649,6 +680,23 @@ def main() -> None:
 
             "original":
                 is_original,
+
+            "evaluation_start":
+                common_start.date().isoformat(),
+
+            "evaluation_end":
+                common_end.date().isoformat(),
+
+            "observations":
+                h001_metrics[
+                    "observations"
+                ],
+
+            "initialization":
+                "after_all_initial_deployments",
+
+            "latest_initial_execution":
+                latest_initial_execution.date().isoformat(),
 
             "h001_final_wealth":
                 h001_metrics[
