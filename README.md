@@ -51,22 +51,6 @@ Transaction costs are charged on gross traded ETF notional. The residual cash fu
 
 This is a simplified proportional transaction-cost model. It does not model bid-ask spreads, market impact or an exact self-financing execution solver.
 
-## Primary results
-
-Primary results use **10 bps per unit of gross ETF notional traded**.
-
-| Strategy | CAGR | Volatility | Sharpe | Max Drawdown | Final Wealth |
-|---|---:|---:|---:|---:|---:|
-| Baseline | 5.199% | 8.739% | 0.459 | -25.958% | 2.575 |
-| ExposureMatched | 4.416% | 5.467% | 0.555 | -13.894% | 2.240 |
-| H001 | 4.891% | 5.402% | 0.645 | -11.009% | 2.438 |
-
-The fully invested baseline produces the highest absolute CAGR.
-
-H001 instead shows lower realized volatility and maximum drawdown and a higher historical Sharpe ratio.
-
-These are historical descriptive results. They are not presented as evidence of alpha or future profitability.
-
 ## Exposure-matched attribution control
 
 Because H001 frequently allocates capital to cash, the experiment also includes an `ExposureMatched` control.
